@@ -44,7 +44,7 @@ public class RefreshTokenInterceptor implements HandlerInterceptor {
 
         UserDTO userDTO = BeanUtil.fillBeanWithMap(userMap, new UserDTO(), false);
 
-        stringRedisTemplate.expire(LOGIN_USER_KEY + token,LOGIN_USER_TTL, TimeUnit.MINUTES);
+        stringRedisTemplate.expire(LOGIN_USER_KEY + token,LOGIN_USER_TTL, TimeUnit.SECONDS);
 
         //存在保存到ThreadLocal
         UserHolder.saveUser(userDTO);

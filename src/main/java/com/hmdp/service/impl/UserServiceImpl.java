@@ -94,7 +94,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
             user =  createUserWithPhone(phone);
         }
 
-        // TODO 生成一个token存在Redis中并返回给前端，设置30分钟有效期
+        //生成一个token存在Redis中并返回给前端，设置30分钟有效期
 
         String token = UUID.randomUUID().toString(true);
 
