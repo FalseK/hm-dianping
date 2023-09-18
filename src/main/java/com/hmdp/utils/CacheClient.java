@@ -46,13 +46,12 @@ public class CacheClient {
     }
 
     //插入数据到Redis并设置逻辑过期时间
-    public void setWithLogicalExpire(String key, Object value, Long time, TimeUnit unit) throws InterruptedException {
+    public void setWithLogicalExpire(String key, Object value, Long time, TimeUnit unit){
 
         if (value == null) {
             return;
         }
 
-        Thread.sleep(200);
 
         RedisData redisData = new RedisData();
         redisData.setData(value);
@@ -75,6 +74,7 @@ public class CacheClient {
         String key = keyPrefix + id;
 
         String json = stringRedisTemplate.opsForValue().get(key);
+
 
         // 2.缓存中取到数据，返回，取不到查询数据库
         if (StrUtil.isNotBlank(json)) {
@@ -113,7 +113,7 @@ public class CacheClient {
 
         String dataJSON = stringRedisTemplate.opsForValue().get(key);
 
-        // 2.缓存中取数据，未命中，返回空
+        // 2.缓存中取数据，判断是否存在
         if (StrUtil.isBlank(dataJSON)) {
             return null;
         }
@@ -127,8 +127,6 @@ public class CacheClient {
 
             return data;
         }
-
-//        String lockKey = LOCK_SHOP_KEY + id;
 
         // 已过期，重建缓存
         if (tryLock(lockKey)) {
@@ -145,7 +143,7 @@ public class CacheClient {
             // 开启线程查询数据库
             CACHE_REBUILD_EXECUTOR.submit(() -> {
                 try {
-                    this.setWithLogicalExpire(key, dbFallback.apply(id), 20L,TimeUnit.SECONDS);
+                    this.setWithLogicalExpire(key, dbFallback.apply(id), time,unit);
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 } finally {
