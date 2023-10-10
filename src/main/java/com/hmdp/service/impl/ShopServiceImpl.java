@@ -5,6 +5,8 @@ import cn.hutool.core.util.BooleanUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
+import com.baomidou.mybatisplus.core.metadata.OrderItem;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hmdp.dto.Result;
 import com.hmdp.entity.Shop;
 import com.hmdp.mapper.ShopMapper;
@@ -12,18 +14,28 @@ import com.hmdp.service.IShopService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.utils.CacheClient;
 import com.hmdp.utils.RedisData;
+import org.springframework.data.geo.Distance;
+import org.springframework.data.geo.GeoResult;
+import org.springframework.data.geo.GeoResults;
+import org.springframework.data.redis.connection.RedisGeoCommands;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.domain.geo.GeoLocation;
+import org.springframework.data.redis.domain.geo.GeoReference;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import javax.annotation.Resource;
 
 import java.time.LocalDateTime;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static com.hmdp.utils.RedisConstants.*;
+import static com.hmdp.utils.SystemConstants.DEFAULT_PAGE_SIZE;
 
 /**
  * <p>
@@ -263,5 +275,80 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
 
 
         return null;
+    }
+
+    @Override
+    public Result queryShopByType(Integer typeId, Integer current, Double x, Double y) {
+
+        if (x == null || y == null){
+            // 根据类型分页查询
+            Page<Shop> page = query()
+                    .eq("type_id", typeId)
+                    .page(new Page<>(current, DEFAULT_PAGE_SIZE));
+            // 返回数据
+            return Result.ok(page.getRecords());
+        }
+
+        String key = SHOP_GEO_KEY + typeId;
+
+        int from = (current -1) * DEFAULT_PAGE_SIZE;
+        int end = current * DEFAULT_PAGE_SIZE;
+
+        // 获取到geo数据
+        GeoResults<RedisGeoCommands.GeoLocation<String>> results = stringRedisTemplate.opsForGeo().search(key,
+                GeoReference.fromCoordinate(x, y),
+                new Distance(5000),
+                RedisGeoCommands.GeoSearchCommandArgs.newGeoSearchArgs().includeDistance().limit(end));
+
+        if (results == null){
+            return Result.ok();
+        }
+
+        List<GeoResult<RedisGeoCommands.GeoLocation<String>>> list = results.getContent();
+        if (list.size() <= from) {
+            // 没有下一页了，结束
+            return Result.ok(Collections.emptyList());
+        }
+
+        //stream写法
+
+//        Map<String, Distance> distanceMap = list
+//                .stream().skip(from)
+//                .collect(Collectors
+//                        .toMap(result -> result.getContent().getName(),
+//                                GeoResult::getDistance));
+//
+//
+//
+//
+//        String ids = StrUtil.join(",",distanceMap.keySet() );
+//
+//        List<Shop> shopList = query().in("id", distanceMap.keySet()).list();
+//
+//        shopList.forEach(shop -> shop.setDistance(distanceMap.get(shop.getId().toString()).getValue()));
+//
+//
+////        System.out.println(shopList);
+//
+//        return Result.ok(shopList.stream().sorted((o1, o2) -> (int) (o1.getDistance() - o2.getDistance())).collect(Collectors.toList()));
+
+        List<Long> ids = new ArrayList<>(list.size());
+        Map<String,Distance> distanceMap = new HashMap<>(list.size());
+        list.forEach(result -> {
+            String shopId = result.getContent().getName();
+            ids.add(Long.valueOf(shopId));
+
+            distanceMap.put(shopId,result.getDistance());
+
+        });
+
+        String idStr = StrUtil.join(",", ids);
+
+        List<Shop> shops = query().in("id", ids).last("ORDER BY FIELD (id," + idStr + ")").list();
+
+        shops.forEach(shop -> shop.setDistance(distanceMap.get(shop.getId().toString()).getValue()));
+
+        return Result.ok(shops);
+
     }
 }

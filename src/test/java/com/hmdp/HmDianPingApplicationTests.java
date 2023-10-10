@@ -2,10 +2,15 @@ package com.hmdp;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.json.JSONUtil;
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.hmdp.dto.Result;
+import com.hmdp.entity.Follow;
 import com.hmdp.entity.Shop;
 import com.hmdp.entity.ShopType;
+import com.hmdp.entity.User;
+import com.hmdp.mapper.FollowMapper;
 import com.hmdp.mapper.ShopTypeMapper;
+import com.hmdp.service.IFollowService;
 import com.hmdp.service.IShopService;
 import com.hmdp.service.IShopTypeService;
 import com.hmdp.service.impl.ShopServiceImpl;
@@ -150,6 +155,18 @@ class HmDianPingApplicationTests {
         String s = String.valueOf(l);
         System.out.println(s);
     }
+
+    @Test
+    public void zSetAddTest(){
+        stringRedisTemplate.opsForZSet().add("k1","m1",LocalDateTime.now().toEpochSecond(ZoneOffset.UTC));
+    }
+
+    @Test
+    public void zSetScoreTest(){
+        Double score = stringRedisTemplate.opsForZSet().score("k1", "m1");
+        System.out.println(score);
+    }
+
 
 
 

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hmdp.mapper.FollowMapper">
+
+    <!-- resultMap模板 -->
+
+    <!--
+         id : 表示自定义映射的唯一标识
+         type : 查询数据要映射的实体类的类型
+         property : 实体类中的属性名
+         column : 映射关系中的字段名(表的列)
+         result : 普通字段的映射关系
+         association : 处理多对一映射关系
+         collection : 设置一对多的映射关系
+            用于处理多表联合查询结果
+    -->
+
+    <!--
+        多对一的情况(association)
+        <resultMap id="empMap" type="Emp">
+            <id property="empno" column="empno"></id>
+            <result property="ename" column="ename"></result>
+            <result property="job" column="job"></result>
+            <result property="mgr" column="mgr"></result>
+            <result property="hiredate" column="hiredate"></result>
+            <result property="sal" column="sal"></result>
+            <result property="comm" column="comm"></result>
+            <association property="dept" javaType="Dept">
+                <id property="deptno" column="deptno"></id>
+                <result property="dname" column="dname"></result>
+                <result property="loc" column="loc"></result>
+            </association>
+        </resultMap>
+    -->
+
+    <!--
+        一对多的情况(collection)
+        注意collection标签中为 ofType
+        <resultMap id="deptMap" type="Dept">
+            <id property="deptno" column="deptno"></id>
+            <result property="dname" column="dname"></result>
+            <result property="loc" column="loc"></result>
+            <collection property="emps" ofType="Emp">
+                <id property="empno" column="empno"></id>
+                <result property="ename" column="ename"></result>
+                <result property="job" column="job"></result>
+                <result property="mgr" column="mgr"></result>
+                <result property="hiredate" column="hiredate"></result>
+                <result property="sal" column="sal"></result>
+                <result property="comm" column="comm"></result>
+            </collection>
+        </resultMap>
+    -->
+
+
+    <!--用分步查询-->
+    <!--
+        分步查询的resultMap结构
+        association标签中插入 select 属性
+            属性值为下一步执行的 sql语句 的唯一标识(方法的全路径)
+            column属性为传入下一步 sql语句的参数值
+        使用 fetchType 实现延迟加载
+
+        <resultMap id="empMapStpe" type="Emp">
+            <id property="empno" column="empno"></id>
+            <result property="ename" column="ename"></result>
+            <result property="job" column="job"></result>
+            <result property="mgr" column="mgr"></result>
+            <result property="hiredate" column="hiredate"></result>
+            <result property="sal" column="sal"></result>
+            <result property="comm" column="comm"></result>
+            <association property="dept" javaType="Dept" fetchType="lazy"
+                         select="com.hiiragi.mybatis.mapper.DeptMapper.selectEmpAndDeptByIdStepTwo"
+                         column="deptno">
+            </association>
+        </resultMap>
+
+        第一步查询
+        <select id="selectEmpAndDeptByIdStepOne" resultMap="empMapStpe">
+            select * from emp where empno = #{empno}
+        </select>
+
+        第二步查询
+
+        <select id="selectEmpAndDeptByIdStepTwo" resultType="Dept">
+            select * from dept where deptno = #{deptno};
+        </select>
+
+    -->
+    <select id="findCommon" resultType="com.hmdp.entity.User" parameterType="java.lang.Long">
+        SELECT u.*
+        FROM tb_follow f1
+        INNER JOIN tb_follow f2 ON f1.follow_user_id = f2.follow_user_id
+        INNER JOIN tb_user u ON f1.follow_user_id = u.id
+        WHERE f1.user_id = #{id1}
+        AND f2.user_id = #{id2}
+    </select>
+</mapper>

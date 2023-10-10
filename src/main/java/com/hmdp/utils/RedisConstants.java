@@ -19,6 +19,8 @@ public class RedisConstants {
     public static final String SECKILL_VOUCHER_KEY = "seckill:voucher:";
     public static final String LOCK_ORDER_KEY = "lock:order:";
 
+    public static final String LOCK_LIKE_KEY = "lock:like:";
+
     public static final String SECKILL_STOCK_KEY = "seckill:stock:";
     public static final String BLOG_LIKED_KEY = "blog:liked:";
     public static final String FEED_KEY = "feed:";
